@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { useApp } from '../contexts/AppContext';
+import { Bluetooth, RefreshCw } from 'lucide-react';
 
 const categories = [
   { id: 1, name: 'Aneka Kopi', emoji: '☕', color: 'from-amber-600 to-orange-600' },
@@ -10,9 +11,14 @@ const categories = [
 ];
 
 const HomeScreen: React.FC = () => {
-  const { state, dispatch } = useApp();
+  const { state, dispatch, initializeBluetooth } = useApp();
 
   const handleCategorySelect = (categoryId: number) => {
+    if (state.bluetoothStatus !== 'connected') {
+      dispatch({ type: 'SET_ERROR', payload: 'Hubungkan Bluetooth terlebih dahulu' });
+      return;
+    }
+
     dispatch({ type: 'SET_CATEGORY', payload: categoryId });
     dispatch({ type: 'SET_SCREEN', payload: 'category' });
 
@@ -22,6 +28,36 @@ const HomeScreen: React.FC = () => {
     }, 15000);
     
     dispatch({ type: 'SET_AUTO_TIMER', payload: timer });
+  };
+
+  const handleBluetoothConnect = async () => {
+    await initializeBluetooth();
+  };
+
+  const getBluetoothStatusText = () => {
+    switch (state.bluetoothStatus) {
+      case 'connected':
+        return '🟢 Bluetooth Terhubung';
+      case 'connecting':
+        return '🟡 Menghubungkan...';
+      case 'unavailable':
+        return '🔴 Bluetooth Tidak Tersedia (Web Mode)';
+      default:
+        return '🔴 Bluetooth Terputus';
+    }
+  };
+
+  const getBluetoothStatusColor = () => {
+    switch (state.bluetoothStatus) {
+      case 'connected':
+        return 'bg-green-500/20 text-green-300 border-green-500/30';
+      case 'connecting':
+        return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30';
+      case 'unavailable':
+        return 'bg-gray-500/20 text-gray-300 border-gray-500/30';
+      default:
+        return 'bg-red-500/20 text-red-300 border-red-500/30';
+    }
   };
 
   return (
@@ -43,15 +79,35 @@ const HomeScreen: React.FC = () => {
           <div className="w-full h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent rounded-full"></div>
         </div>
 
-        {/* Connection Status */}
-        <div className="flex justify-center mb-6">
-          <div className={`px-4 py-2 rounded-full text-sm font-medium ${
-            state.isBluetoothConnected 
-              ? 'bg-green-500/20 text-green-300 border border-green-500/30' 
-              : 'bg-red-500/20 text-red-300 border border-red-500/30'
-          }`}>
-            {state.isBluetoothConnected ? '🟢 Bluetooth Terhubung' : '🔴 Bluetooth Terputus'}
+        {/* Bluetooth Status & Control */}
+        <div className="futuristic-card p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className={`flex items-center px-4 py-2 rounded-full text-sm font-medium border ${getBluetoothStatusColor()}`}>
+              <Bluetooth className="mr-2" size={16} />
+              {getBluetoothStatusText()}
+            </div>
+            
+            <button
+              onClick={handleBluetoothConnect}
+              disabled={state.bluetoothStatus === 'connecting' || state.bluetoothStatus === 'unavailable'}
+              className={`flex items-center px-4 py-2 rounded-xl font-medium transition-all duration-300 ${
+                state.bluetoothStatus === 'connecting' 
+                  ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                  : state.bluetoothStatus === 'unavailable'
+                  ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                  : 'futuristic-button'
+              }`}
+            >
+              <RefreshCw className={`mr-2 ${state.bluetoothStatus === 'connecting' ? 'animate-spin' : ''}`} size={16} />
+              {state.bluetoothStatus === 'connecting' ? 'Menghubungkan...' : 'Hubungkan'}
+            </button>
           </div>
+
+          {state.error && (
+            <div className="bg-red-500/20 text-red-300 border border-red-500/30 rounded-lg p-3 text-sm">
+              {state.error}
+            </div>
+          )}
         </div>
 
         {/* Category Selection */}
@@ -65,8 +121,10 @@ const HomeScreen: React.FC = () => {
               <button
                 key={category.id}
                 onClick={() => handleCategorySelect(category.id)}
-                className={`futuristic-button bg-gradient-to-r ${category.color} hover:scale-110 transition-all duration-300 min-h-[120px] flex flex-col items-center justify-center space-y-3`}
-                disabled={!state.isBluetoothConnected}
+                className={`futuristic-button bg-gradient-to-r ${category.color} hover:scale-110 transition-all duration-300 min-h-[120px] flex flex-col items-center justify-center space-y-3 ${
+                  state.bluetoothStatus !== 'connected' ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+                disabled={state.bluetoothStatus !== 'connected'}
               >
                 <span className="text-4xl">{category.emoji}</span>
                 <span className="text-lg font-semibold text-center">{category.name}</span>
@@ -77,7 +135,12 @@ const HomeScreen: React.FC = () => {
 
         {/* Footer Info */}
         <div className="text-center mt-8 text-gray-400">
-          <p className="text-sm">Pastikan Bluetooth aktif dan ESP32 terhubung</p>
+          <p className="text-sm">
+            {state.bluetoothStatus === 'unavailable' 
+              ? 'Install aplikasi di Android untuk menggunakan Bluetooth'
+              : 'Pastikan ESP32 aktif dan dalam jangkauan Bluetooth'
+            }
+          </p>
         </div>
       </div>
     </div>
