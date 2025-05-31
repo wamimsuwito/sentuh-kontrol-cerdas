@@ -82,13 +82,16 @@ export class BluetoothService {
     try {
       const command = `RELAY_${relayNumber}_${action}`;
       const encoder = new TextEncoder();
-      const data = encoder.encode(command);
+      const uint8Array = encoder.encode(command);
+      
+      // Convert Uint8Array to DataView for BleClient.write
+      const dataView = new DataView(uint8Array.buffer, uint8Array.byteOffset, uint8Array.byteLength);
 
       await BleClient.write(
         this.device.deviceId,
         this.serviceUUID,
         this.characteristicUUID,
-        data
+        dataView
       );
 
       console.log(`Perintah dikirim: ${command}`);
