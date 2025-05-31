@@ -15,8 +15,12 @@ const config: CapacitorConfig = {
       keystoreAlias: undefined,
       keystoreAliasPassword: undefined,
       keystorePassword: undefined,
-      releaseType: 'APK'
-    }
+      releaseType: 'APK',
+      signingType: 'apksigner'
+    },
+    allowMixedContent: true,
+    captureInput: true,
+    webContentsDebuggingEnabled: true
   },
   plugins: {
     BluetoothLe: {
