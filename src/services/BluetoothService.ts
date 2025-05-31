@@ -57,7 +57,9 @@ export class BluetoothService {
         this.limitSwitchCharacteristicUUID,
         (value) => {
           const decoder = new TextDecoder();
-          const message = decoder.decode(value);
+          // Convert DataView to Uint8Array for TextDecoder
+          const uint8Array = new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+          const message = decoder.decode(uint8Array);
           console.log('Data dari limit switch:', message);
           
           // Emit event untuk UI
