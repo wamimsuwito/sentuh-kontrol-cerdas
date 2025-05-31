@@ -9,6 +9,15 @@ const config: CapacitorConfig = {
     url: 'https://cc51a7d5-9608-46ed-89c2-dbfd261fdce9.lovableproject.com?forceHideBadge=true',
     cleartext: true
   },
+  android: {
+    buildOptions: {
+      keystorePath: undefined,
+      keystoreAlias: undefined,
+      keystoreAliasPassword: undefined,
+      keystorePassword: undefined,
+      releaseType: 'APK'
+    }
+  },
   plugins: {
     BluetoothLe: {
       displayStrings: {
