@@ -1,12 +1,32 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+import React from 'react';
+import { useApp } from '../contexts/AppContext';
+import HomeScreen from '../components/HomeScreen';
+import CategoryScreen from '../components/CategoryScreen';
+import ConfirmScreen from '../components/ConfirmScreen';
+import ProcessingScreen from '../components/ProcessingScreen';
 
 const Index = () => {
+  const { state } = useApp();
+
+  const renderScreen = () => {
+    switch (state.currentScreen) {
+      case 'home':
+        return <HomeScreen />;
+      case 'category':
+        return <CategoryScreen />;
+      case 'confirm':
+        return <ConfirmScreen />;
+      case 'processing':
+        return <ProcessingScreen />;
+      default:
+        return <HomeScreen />;
+    }
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">Start building your amazing project here!</p>
-      </div>
+    <div className="min-h-screen">
+      {renderScreen()}
     </div>
   );
 };
