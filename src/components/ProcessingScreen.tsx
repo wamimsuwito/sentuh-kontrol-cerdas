@@ -1,7 +1,7 @@
 
 import React, { useEffect } from 'react';
 import { useApp } from '../contexts/AppContext';
-import { bluetoothService } from '../services/BluetoothService';
+import { arduinoService } from '../services/ArduinoService';
 
 const ProcessingScreen: React.FC = () => {
   const { state, dispatch } = useApp();
@@ -23,12 +23,12 @@ const ProcessingScreen: React.FC = () => {
           const relayNumber = categoryMap[state.selectedOption as keyof typeof categoryMap];
 
           if (relayNumber) {
-            await bluetoothService.sendRelayCommand(relayNumber, 'ON');
+            await arduinoService.sendRelayCommand(relayNumber, 'ON');
             console.log(`Relay ${relayNumber} dihidupkan untuk ${state.selectedOption}`);
 
             // Matikan relay setelah 5 detik
             setTimeout(async () => {
-              await bluetoothService.sendRelayCommand(relayNumber, 'OFF');
+              await arduinoService.sendRelayCommand(relayNumber, 'OFF');
               console.log(`Relay ${relayNumber} dimatikan`);
             }, 5000);
           }
@@ -83,7 +83,7 @@ const ProcessingScreen: React.FC = () => {
               {state.selectedOption}
             </p>
             <p className="text-sm text-gray-400 mt-1">
-              Relay 2 - Kopi Susu
+              Arduino Mega 2560 - USB
             </p>
           </div>
 

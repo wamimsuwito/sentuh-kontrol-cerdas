@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useApp } from '../contexts/AppContext';
-import { Bluetooth, RefreshCw } from 'lucide-react';
+import { Usb, RefreshCw } from 'lucide-react';
 
 const categories = [
   { id: 1, name: 'Aneka Kopi', emoji: '☕', color: 'from-amber-600 to-orange-600' },
@@ -11,11 +11,11 @@ const categories = [
 ];
 
 const HomeScreen: React.FC = () => {
-  const { state, dispatch, initializeBluetooth } = useApp();
+  const { state, dispatch, initializeArduino } = useApp();
 
   const handleCategorySelect = (categoryId: number) => {
-    if (state.bluetoothStatus !== 'connected') {
-      dispatch({ type: 'SET_ERROR', payload: 'Hubungkan Bluetooth terlebih dahulu' });
+    if (state.arduinoStatus !== 'connected') {
+      dispatch({ type: 'SET_ERROR', payload: 'Hubungkan Arduino terlebih dahulu' });
       return;
     }
 
@@ -30,25 +30,25 @@ const HomeScreen: React.FC = () => {
     dispatch({ type: 'SET_AUTO_TIMER', payload: timer });
   };
 
-  const handleBluetoothConnect = async () => {
-    await initializeBluetooth();
+  const handleArduinoConnect = async () => {
+    await initializeArduino();
   };
 
-  const getBluetoothStatusText = () => {
-    switch (state.bluetoothStatus) {
+  const getArduinoStatusText = () => {
+    switch (state.arduinoStatus) {
       case 'connected':
-        return '🟢 Bluetooth Terhubung';
+        return '🟢 Arduino Terhubung';
       case 'connecting':
         return '🟡 Menghubungkan...';
       case 'unavailable':
-        return '🔴 Bluetooth Tidak Tersedia (Web Mode)';
+        return '🔴 Web Serial Tidak Tersedia';
       default:
-        return '🔴 Bluetooth Terputus';
+        return '🔴 Arduino Terputus';
     }
   };
 
-  const getBluetoothStatusColor = () => {
-    switch (state.bluetoothStatus) {
+  const getArduinoStatusColor = () => {
+    switch (state.arduinoStatus) {
       case 'connected':
         return 'bg-green-500/20 text-green-300 border-green-500/30';
       case 'connecting':
@@ -61,13 +61,13 @@ const HomeScreen: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 relative overflow-hidden">
+    <div className="min-h-screen flex flex-col items-center justify-between p-6 relative overflow-hidden">
       {/* Background effects */}
       <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 via-purple-900/20 to-blue-800/20"></div>
       <div className="absolute top-10 left-10 w-32 h-32 bg-blue-500/10 rounded-full blur-xl"></div>
       <div className="absolute bottom-10 right-10 w-40 h-40 bg-purple-500/10 rounded-full blur-xl"></div>
 
-      <div className="relative z-10 w-full max-w-2xl">
+      <div className="relative z-10 w-full max-w-2xl flex-1 flex flex-col justify-center">
         {/* Header */}
         <div className="futuristic-card p-8 mb-8 text-center">
           <h1 className="text-4xl font-bold neon-glow mb-4">
@@ -79,32 +79,17 @@ const HomeScreen: React.FC = () => {
           <div className="w-full h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent rounded-full"></div>
         </div>
 
-        {/* Bluetooth Status & Control */}
+        {/* Arduino Status Display */}
         <div className="futuristic-card p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className={`flex items-center px-4 py-2 rounded-full text-sm font-medium border ${getBluetoothStatusColor()}`}>
-              <Bluetooth className="mr-2" size={16} />
-              {getBluetoothStatusText()}
+          <div className="flex items-center justify-center mb-4">
+            <div className={`flex items-center px-4 py-2 rounded-full text-sm font-medium border ${getArduinoStatusColor()}`}>
+              <Usb className="mr-2" size={16} />
+              {getArduinoStatusText()}
             </div>
-            
-            <button
-              onClick={handleBluetoothConnect}
-              disabled={state.bluetoothStatus === 'connecting' || state.bluetoothStatus === 'unavailable'}
-              className={`flex items-center px-4 py-2 rounded-xl font-medium transition-all duration-300 ${
-                state.bluetoothStatus === 'connecting' 
-                  ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                  : state.bluetoothStatus === 'unavailable'
-                  ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
-                  : 'futuristic-button'
-              }`}
-            >
-              <RefreshCw className={`mr-2 ${state.bluetoothStatus === 'connecting' ? 'animate-spin' : ''}`} size={16} />
-              {state.bluetoothStatus === 'connecting' ? 'Menghubungkan...' : 'Hubungkan'}
-            </button>
           </div>
 
           {state.error && (
-            <div className="bg-red-500/20 text-red-300 border border-red-500/30 rounded-lg p-3 text-sm">
+            <div className="bg-red-500/20 text-red-300 border border-red-500/30 rounded-lg p-3 text-sm text-center">
               {state.error}
             </div>
           )}
@@ -122,9 +107,9 @@ const HomeScreen: React.FC = () => {
                 key={category.id}
                 onClick={() => handleCategorySelect(category.id)}
                 className={`futuristic-button bg-gradient-to-r ${category.color} hover:scale-110 transition-all duration-300 min-h-[120px] flex flex-col items-center justify-center space-y-3 ${
-                  state.bluetoothStatus !== 'connected' ? 'opacity-50 cursor-not-allowed' : ''
+                  state.arduinoStatus !== 'connected' ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
-                disabled={state.bluetoothStatus !== 'connected'}
+                disabled={state.arduinoStatus !== 'connected'}
               >
                 <span className="text-4xl">{category.emoji}</span>
                 <span className="text-lg font-semibold text-center">{category.name}</span>
@@ -132,15 +117,34 @@ const HomeScreen: React.FC = () => {
             ))}
           </div>
         </div>
+      </div>
 
-        {/* Footer Info */}
-        <div className="text-center mt-8 text-gray-400">
-          <p className="text-sm">
-            {state.bluetoothStatus === 'unavailable' 
-              ? 'Install aplikasi di Android untuk menggunakan Bluetooth'
-              : 'Pastikan ESP32 aktif dan dalam jangkauan Bluetooth'
-            }
-          </p>
+      {/* Arduino Connection Control - Moved to bottom */}
+      <div className="relative z-10 w-full max-w-2xl">
+        <div className="futuristic-card p-6">
+          <div className="flex flex-col items-center space-y-4">
+            <button
+              onClick={handleArduinoConnect}
+              disabled={state.arduinoStatus === 'connecting' || state.arduinoStatus === 'unavailable'}
+              className={`flex items-center px-6 py-3 rounded-xl font-medium transition-all duration-300 ${
+                state.arduinoStatus === 'connecting' 
+                  ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                  : state.arduinoStatus === 'unavailable'
+                  ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                  : 'futuristic-button'
+              }`}
+            >
+              <RefreshCw className={`mr-2 ${state.arduinoStatus === 'connecting' ? 'animate-spin' : ''}`} size={20} />
+              {state.arduinoStatus === 'connecting' ? 'Menghubungkan...' : 'Hubungkan Arduino'}
+            </button>
+            
+            <p className="text-center text-sm text-gray-400">
+              {state.arduinoStatus === 'unavailable' 
+                ? 'Gunakan browser Chrome/Edge untuk koneksi USB'
+                : 'Pastikan Arduino Mega 2560 terhubung via USB'
+              }
+            </p>
+          </div>
         </div>
       </div>
     </div>

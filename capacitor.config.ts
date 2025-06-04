@@ -21,16 +21,6 @@ const config: CapacitorConfig = {
     allowMixedContent: true,
     captureInput: true,
     webContentsDebuggingEnabled: true
-  },
-  plugins: {
-    BluetoothLe: {
-      displayStrings: {
-        scanning: "Memindai perangkat Bluetooth...",
-        cancel: "Batal",
-        availableDevices: "Perangkat yang tersedia",
-        noDeviceFound: "Tidak ada perangkat ditemukan"
-      }
-    }
   }
 };
 
