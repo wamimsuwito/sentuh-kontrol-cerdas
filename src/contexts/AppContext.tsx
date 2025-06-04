@@ -84,7 +84,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       if (!('serial' in navigator)) {
         dispatch({ type: 'SET_ARDUINO_CONNECTION_STATUS', payload: 'unavailable' });
-        dispatch({ type: 'SET_ERROR', payload: 'Web Serial API tidak didukung. Gunakan Chrome/Edge terbaru.' });
+        dispatch({ type: 'SET_ERROR', payload: 'Mohon maaf, untuk sementara mesin ini tidak dapat digunakan' });
         return;
       }
 
@@ -97,7 +97,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       console.error('Error inisialisasi Arduino:', error);
       dispatch({ type: 'SET_ARDUINO_STATUS', payload: false });
       dispatch({ type: 'SET_ARDUINO_CONNECTION_STATUS', payload: 'disconnected' });
-      dispatch({ type: 'SET_ERROR', payload: 'Gagal menghubungkan Arduino. Pastikan kabel USB terhubung dan driver terinstall.' });
+      dispatch({ type: 'SET_ERROR', payload: 'Mohon maaf, untuk sementara mesin ini tidak dapat digunakan' });
     }
   };
 
@@ -110,7 +110,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const handleArduinoConnected = () => {
       dispatch({ type: 'SET_ARDUINO_STATUS', payload: true });
       dispatch({ type: 'SET_ARDUINO_CONNECTION_STATUS', payload: 'connected' });
-      dispatch({ type: 'SET_ERROR', payload: null });
+      dispatch({ type: 'SET_ERROR', payload: null }); // Clear error when connected
     };
 
     const handleArduinoDisconnected = () => {

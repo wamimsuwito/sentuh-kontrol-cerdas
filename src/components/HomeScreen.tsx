@@ -15,7 +15,7 @@ const HomeScreen: React.FC = () => {
 
   const handleCategorySelect = (categoryId: number) => {
     if (state.arduinoStatus !== 'connected') {
-      dispatch({ type: 'SET_ERROR', payload: 'Hubungkan Arduino terlebih dahulu' });
+      dispatch({ type: 'SET_ERROR', payload: 'Mohon maaf, untuk sementara mesin ini tidak dapat digunakan' });
       return;
     }
 
@@ -133,8 +133,8 @@ const HomeScreen: React.FC = () => {
             </div>
           </div>
 
-          {/* Error Message */}
-          {state.error && (
+          {/* Error Message - Only show when there's an error AND Arduino is not connected */}
+          {state.error && state.arduinoStatus !== 'connected' && (
             <div className="bg-red-500/20 text-red-300 border border-red-500/30 rounded-lg p-3 text-sm text-center mb-4">
               {state.error}
             </div>
