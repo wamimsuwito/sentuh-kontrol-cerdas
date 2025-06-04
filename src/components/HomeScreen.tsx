@@ -67,16 +67,32 @@ const HomeScreen: React.FC = () => {
       <div className="absolute top-10 left-10 w-32 h-32 bg-blue-500/10 rounded-full blur-xl"></div>
       <div className="absolute bottom-10 right-10 w-40 h-40 bg-purple-500/10 rounded-full blur-xl"></div>
 
+      {/* Twinkling Stars */}
+      <div className="stars-container">
+        {[...Array(50)].map((_, i) => (
+          <div
+            key={i}
+            className="star"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              animationDelay: `${Math.random() * 4}s`,
+              animationDuration: `${2 + Math.random() * 3}s`
+            }}
+          ></div>
+        ))}
+      </div>
+
       {/* Main Content - Takes most of the space */}
       <div className="flex-1 flex flex-col items-center justify-center p-6 relative z-10">
         <div className="w-full max-w-2xl">
           {/* Header */}
-          <div className="futuristic-card p-8 mb-8 text-center">
-            <h1 className="text-4xl font-bold neon-glow mb-4">
+          <div className="futuristic-card p-8 mb-8 text-center relative">
+            <h1 className="text-3xl font-bold neon-glow mb-4">
               Selamat Datang di
             </h1>
-            <h2 className="text-5xl font-bold text-white mb-2">
-              Nice Ningrum
+            <h2 className="text-3xl font-bold text-white mb-2 blinking-smooth">
+              NiceNingrum
             </h2>
             <div className="w-full h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent rounded-full"></div>
           </div>
