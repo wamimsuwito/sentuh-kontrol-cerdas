@@ -29,6 +29,11 @@ BLECharacteristic* pLimitSwitchCharacteristic = NULL;
 bool deviceConnected = false;
 bool oldDeviceConnected = false;
 
+// Forward declarations
+void processCommand(String command);
+void checkLimitSwitch();
+void sendStatus();
+
 // BLE Server Callbacks
 class MyServerCallbacks: public BLEServerCallbacks {
     void onConnect(BLEServer* pServer) {
@@ -45,15 +50,11 @@ class MyServerCallbacks: public BLEServerCallbacks {
 // BLE Characteristic Callbacks
 class MyCallbacks: public BLECharacteristicCallbacks {
     void onWrite(BLECharacteristic *pCharacteristic) {
-      std::string rxValue = pCharacteristic->getValue();
+      String rxValue = pCharacteristic->getValue().c_str();
       
       if (rxValue.length() > 0) {
-        String command = "";
-        for (int i = 0; i < rxValue.length(); i++) {
-          command += rxValue[i];
-        }
-        Serial.println("Perintah BLE diterima: " + command);
-        processCommand(command);
+        Serial.println("Perintah BLE diterima: " + rxValue);
+        processCommand(rxValue);
       }
     }
 };
