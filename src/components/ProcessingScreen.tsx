@@ -1,13 +1,13 @@
 
 import React, { useEffect } from 'react';
 import { useApp } from '../contexts/AppContext';
-import { arduinoService } from '../services/ArduinoService';
+import { bluetoothService } from '../services/BluetoothService';
 
 const ProcessingScreen: React.FC = () => {
   const { state, dispatch } = useApp();
 
   useEffect(() => {
-    // Kirim perintah ke relay yang dipilih
+    // Kirim perintah ke relay yang dipilih melalui ESP32
     const sendRelayCommand = async () => {
       if (state.selectedCategory && state.selectedOption) {
         try {
@@ -23,17 +23,17 @@ const ProcessingScreen: React.FC = () => {
           const relayNumber = categoryMap[state.selectedOption as keyof typeof categoryMap];
 
           if (relayNumber) {
-            await arduinoService.sendRelayCommand(relayNumber, 'ON');
-            console.log(`Relay ${relayNumber} dihidupkan untuk ${state.selectedOption}`);
+            await bluetoothService.sendRelayCommand(relayNumber, 'ON');
+            console.log(`Relay ${relayNumber} dihidupkan untuk ${state.selectedOption} via ESP32`);
 
             // Matikan relay setelah 5 detik
             setTimeout(async () => {
-              await arduinoService.sendRelayCommand(relayNumber, 'OFF');
-              console.log(`Relay ${relayNumber} dimatikan`);
+              await bluetoothService.sendRelayCommand(relayNumber, 'OFF');
+              console.log(`Relay ${relayNumber} dimatikan via ESP32`);
             }, 5000);
           }
         } catch (error) {
-          console.error('Error mengirim perintah relay:', error);
+          console.error('Error mengirim perintah relay ke ESP32:', error);
         }
       }
     };
@@ -83,7 +83,7 @@ const ProcessingScreen: React.FC = () => {
               {state.selectedOption}
             </p>
             <p className="text-sm text-gray-400 mt-1">
-              Arduino Mega 2560 - USB
+              ESP32 - Bluetooth LE
             </p>
           </div>
 

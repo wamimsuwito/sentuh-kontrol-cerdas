@@ -1,319 +1,217 @@
 
-# Nice Ningrum - Sentuh Kontrol Cerdas
+# Nice Ningrum - Sentuh Kontrol Cerdas (ESP32 Bluetooth)
 ## Panduan Build dan Setup Lengkap
 
 ### 📋 Daftar Isi
-1. [Persiapan Hardware](#persiapan-hardware)
-2. [Upload Code ke Arduino](#upload-code-ke-arduino)
+1. [Persiapan Hardware ESP32](#persiapan-hardware-esp32)
+2. [Upload Code ke ESP32](#upload-code-ke-esp32)
 3. [Setup Development Environment](#setup-development-environment)
-4. [Build untuk Production](#build-untuk-production)
-5. [Setup untuk Offline Use](#setup-untuk-offline-use)
+4. [Build APK untuk Android](#build-apk-untuk-android)
+5. [Deploy untuk Production](#deploy-untuk-production)
 6. [Troubleshooting](#troubleshooting)
 
 ---
 
-## 🔧 Persiapan Hardware
+## 🔧 Persiapan Hardware ESP32
 
 ### Komponen yang Dibutuhkan:
-- Arduino Mega 2560
+- ESP32 Development Board (ESP32-WROOM-32)
 - 16x Relay Module (5V)
-- Kabel USB A to B
+- Kabel micro USB
 - Kabel jumper
-- Breadboard (opsional)
+- Power supply 5V eksternal
 - Limit Switch (opsional)
 
-### Koneksi Hardware:
+### Koneksi Hardware ESP32:
 ```
-Arduino Mega 2560 Pin Assignment:
-├── Relay 1-16    → Pin Digital 22-37
-├── LED Indikator → Pin 13 (built-in)
-├── Limit Switch  → Pin 2 (dengan pull-up internal)
-└── USB           → Port Serial untuk komunikasi
+ESP32 GPIO Assignment:
+├── Relay 1-16    → GPIO 2, 4, 5, 18, 19, 21, 22, 23, 25, 26, 27, 32, 33, 12, 14, 15
+├── LED Indikator → GPIO 2 (built-in)
+├── Limit Switch  → GPIO 13 (dengan pull-up internal)
+└── Bluetooth LE  → Built-in
 ```
 
-### Skema Koneksi Detail:
-```
-Relay Module → Arduino Mega
-VCC          → 5V
-GND          → GND
-IN1          → Pin 22 (Relay 1)
-IN2          → Pin 23 (Relay 2)
-...
-IN16         → Pin 37 (Relay 16)
-
-Limit Switch → Arduino Mega
-Terminal 1   → Pin 2
-Terminal 2   → GND
-```
+**PENTING:** Relay memerlukan power supply 5V eksternal karena ESP32 GPIO hanya 3.3V.
 
 ---
 
-## 📤 Upload Code ke Arduino
+## 📤 Upload Code ke ESP32
 
 ### 1. Install Arduino IDE
-- Download dari: https://www.arduino.cc/en/software
-- Install driver USB untuk Arduino Mega 2560
+- Download: https://www.arduino.cc/en/software
+- Install driver CP2102/CH340 untuk ESP32
 
-### 2. Setup Arduino IDE
+### 2. Setup ESP32 di Arduino IDE
 ```
-Tools → Board → Arduino AVR Boards → Arduino Mega or Mega 2560
-Tools → Processor → ATmega2560 (Mega 2560)
-Tools → Port → (Pilih port COM yang sesuai)
+File → Preferences → Additional Boards Manager URLs:
+https://dl.espressif.com/dl/package_esp32_index.json
+
+Tools → Board → Boards Manager → Install "ESP32"
+Tools → Board → ESP32 Dev Module
+Tools → Port → (Pilih port COM ESP32)
 ```
 
-### 3. Upload Code
-- Buka file `arduino_mega_2560_code.ino`
-- Klik tombol Upload (→)
-- Tunggu hingga "Done uploading" muncul
-
-### 4. Test Koneksi
-- Buka Serial Monitor (Ctrl+Shift+M)
-- Set baud rate ke 9600
-- Kirim command: `STATUS`
-- Arduino harus merespon dengan status relay
+### 3. Upload Code ESP32
+- Buka file `esp32_relay_controller.ino`
+- Upload ke ESP32
+- Check Serial Monitor (115200 baud)
+- ESP32 harus menampilkan "ESP32_Relay_Controller siap!"
 
 ---
 
 ## 💻 Setup Development Environment
 
-### 1. Install Node.js
-- Download dari: https://nodejs.org/
-- Pilih versi LTS (Long Term Support)
-
-### 2. Install Dependencies
+### 1. Install Dependencies
 ```bash
-# Clone atau extract project
 cd sentuh-kontrol-cerdas
-
-# Install dependencies
 npm install
-
-# Start development server
-npm run dev
+npm run dev  # Test di browser (Bluetooth tidak akan berfungsi di web)
 ```
 
-### 3. Test di Browser
-- Buka Chrome atau Edge (diperlukan untuk Web Serial API)
-- Akses: http://localhost:5173
-- Hubungkan Arduino via USB
-- Test koneksi Arduino
-
----
-
-## 🏗️ Build untuk Production
-
-### 1. Build Static Files
+### 2. Install Capacitor untuk Mobile
 ```bash
-# Build project
-npm run build
-
-# File hasil build ada di folder 'dist'
-```
-
-### 2. Setup Local Web Server
-```bash
-# Install http-server global
-npm install -g http-server
-
-# Serve built files
-cd dist
-http-server -p 8080
-
-# Akses via: http://localhost:8080
-```
-
-### 3. Alternative: Python Server
-```bash
-# Masuk ke folder dist
-cd dist
-
-# Python 3
-python -m http.server 8080
-
-# Python 2
-python -m SimpleHTTPServer 8080
+npm install -g @capacitor/cli
+npx cap add android
 ```
 
 ---
 
-## 🔌 Setup untuk Offline Use
+## 📱 Build APK untuk Android
 
-### Method 1: Standalone Executable (Recommended)
+### 1. Install Android Development Tools
+- Android Studio: https://developer.android.com/studio
+- Java JDK 11+
+- Android SDK dan build tools
 
-#### Install Electron Packager
+### 2. Build dan Sync
 ```bash
-npm install electron -g
-npm install electron-packager -g
-```
-
-#### Create Electron App
-Buat file `electron-main.js`:
-```javascript
-const { app, BrowserWindow } = require('electron');
-const path = require('path');
-
-function createWindow() {
-  const win = new BrowserWindow({
-    width: 1200,
-    height: 800,
-    webPreferences: {
-      nodeIntegration: false,
-      contextIsolation: true,
-      webSecurity: false  // Needed for Web Serial API
-    }
-  });
-
-  win.loadFile('dist/index.html');
-}
-
-app.whenReady().then(createWindow);
-
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
-});
-```
-
-#### Package Application
-```bash
-# Build the web app first
+# Build web assets
 npm run build
 
-# Package for Windows
-electron-packager . nice-ningrum --platform=win32 --arch=x64 --out=releases/
+# Sync dengan Android
+npx cap sync android
 
-# Package for Linux
-electron-packager . nice-ningrum --platform=linux --arch=x64 --out=releases/
-
-# Package for macOS
-electron-packager . nice-ningrum --platform=darwin --arch=x64 --out=releases/
+# Open Android Studio
+npx cap open android
 ```
 
-### Method 2: Portable Web Server
+### 3. Generate APK di Android Studio
+1. Tunggu Gradle sync selesai
+2. Build → Generate Signed Bundle/APK
+3. Pilih APK → Create keystore baru
+4. Build release APK
+5. APK tersimpan di `android/app/build/outputs/apk/release/`
 
-#### Create Portable Package
+### 4. Install APK ke Android
 ```bash
-# Create portable folder
-mkdir nice-ningrum-portable
-cd nice-ningrum-portable
+# Via ADB
+adb install app-release.apk
 
-# Copy built files
-cp -r ../dist/* .
-
-# Download portable web server (contoh: Mongoose)
-# https://github.com/cesanta/mongoose/releases
+# Atau copy ke smartphone dan install manual
 ```
 
-#### Windows Batch File
-Buat `start.bat`:
-```batch
-@echo off
-echo Starting Nice Ningrum Server...
-echo.
-echo Server akan berjalan di: http://localhost:8080
-echo Tekan Ctrl+C untuk stop server
-echo.
-start http://localhost:8080
-python -m http.server 8080
-pause
-```
+---
 
-#### Linux Shell Script
-Buat `start.sh`:
+## 🏗️ Deploy untuk Production
+
+### 1. Konfigurasi Production
 ```bash
-#!/bin/bash
-echo "Starting Nice Ningrum Server..."
-echo "Server akan berjalan di: http://localhost:8080"
-echo "Tekan Ctrl+C untuk stop server"
-echo
-xdg-open http://localhost:8080 &
-python3 -m http.server 8080
+# Pastikan capacitor.config.ts server di-comment untuk production
+# Build optimized
+npm run build
+npx cap sync android
+```
+
+### 2. Generate Signed APK
+```bash
+# Buat keystore (sekali saja)
+keytool -genkey -v -keystore release-key.keystore -alias app_key -keyalg RSA -keysize 2048 -validity 10000
+
+# Build signed APK
+cd android
+./gradlew assembleRelease
 ```
 
 ---
 
 ## 🔧 Troubleshooting
 
-### Arduino Connection Issues
+### ESP32 Connection Issues
 ```
-Problem: Arduino tidak terdeteksi
+Problem: ESP32 tidak detect di Arduino IDE
 Solution: 
-- Install driver CH340/CH341 atau FTDI
-- Check Device Manager (Windows)
+- Install driver CP2102/CH340
+- Hold BOOT button saat upload
 - Coba port USB lain
-- Restart Arduino IDE
+- Check Device Manager
+
+Problem: Bluetooth ESP32 tidak terlihat
+Solution:
+- Reset ESP32 (tekan tombol EN)
+- Check Serial Monitor untuk error
+- Clear Bluetooth cache Android
+- Restart ESP32
 ```
 
-### Web Serial API Issues
+### Android Build Issues
 ```
-Problem: "Web Serial API tidak didukung"
+Problem: Gradle build failed
 Solution:
-- Gunakan Chrome/Edge terbaru
-- Enable flags: chrome://flags/#enable-experimental-web-platform-features
-- Tidak bisa di Firefox/Safari
+- Update Android Studio dan SDK
+- Check Java version (JDK 11+)
+- Clean: ./gradlew clean
+- Check capacitor.config.ts
+
+Problem: Bluetooth permission denied
+Solution:
+- Check AndroidManifest.xml permissions
+- Request runtime permission Android 12+
+- Enable Bluetooth di Settings
 ```
 
-### Build Errors
+### App Runtime Issues
 ```
-Problem: npm install gagal
+Problem: Tidak bisa connect ke ESP32
 Solution:
-- Clear npm cache: npm cache clean --force
-- Delete node_modules dan package-lock.json
-- npm install ulang
-- Check Node.js version (minimal v16)
-```
-
-### Relay Tidak Berfungsi
-```
-Problem: Relay tidak aktif
-Solution:
-- Check koneksi hardware
-- Test manual via Serial Monitor
-- Check voltase relay (5V/12V)
-- Verify pin assignment di code Arduino
+- Pastikan ESP32 menyala
+- Enable Bluetooth Android
+- Clear app cache dan restart
+- Unpair dan pair ulang ESP32
+- Check app permissions (Bluetooth, Location)
 ```
 
 ---
 
-## 📱 Deploy ke Mobile (Opsional)
+## 📋 Required Android Permissions
 
-### Build APK untuk Android
-```bash
-# Install Capacitor CLI
-npm install -g @capacitor/cli
+File: `android/app/src/main/AndroidManifest.xml`
+```xml
+<uses-permission android:name="android.permission.BLUETOOTH" />
+<uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
-# Build dan sync
-npm run build
-npx cap sync android
-
-# Open Android Studio
-npx cap open android
-
-# Build APK di Android Studio
+<!-- Android 12+ -->
+<uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+<uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 ```
 
 ---
 
-## 📞 Support & Contact
+## 🚀 Quick Start Summary
 
-Jika ada pertanyaan atau masalah:
-1. Check Serial Monitor untuk debug Arduino
-2. Check Browser Console (F12) untuk debug web app
-3. Pastikan driver Arduino terinstall
-4. Test dengan perangkat USB lain
-
-## 🔄 Update Instructions
-
-Untuk update aplikasi:
-1. Backup file konfigurasi
-2. Download versi terbaru
-3. Re-build sesuai panduan
-4. Test semua fungsi sebelum production
+1. **ESP32 Setup:** Upload `esp32_relay_controller.ino`, connect relays
+2. **Development:** `npm install && npm run build`
+3. **Android Build:** `npx cap add android && npx cap sync android`
+4. **APK:** Build di Android Studio atau `./gradlew assembleRelease`
+5. **Deploy:** Install APK ke Android, pair dengan ESP32
 
 ---
 
-**Catatan Penting:**
-- Aplikasi memerlukan browser Chrome/Edge untuk Web Serial API
-- Arduino harus tetap terhubung via USB saat aplikasi berjalan
-- Untuk production, disarankan menggunakan UPS untuk stabilitas power
+**Catatan Production:**
+- ESP32 perlu power supply stabil untuk relay
+- APK harus signed untuk distribution
+- Test koneksi Bluetooth di lingkungan production
+- Backup keystore untuk update aplikasi
+
+Untuk troubleshooting lanjutan, check console log ESP32 dan Android logcat.

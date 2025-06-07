@@ -1,15 +1,15 @@
 
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import { arduinoService } from '../services/ArduinoService';
+import { bluetoothService } from '../services/BluetoothService';
 
 interface AppState {
   currentScreen: 'home' | 'category' | 'confirm' | 'processing';
   selectedCategory: number | null;
   selectedOption: string | null;
-  isArduinoConnected: boolean;
+  isBluetoothConnected: boolean;
   limitSwitchPressed: boolean;
   autoReturnTimer: NodeJS.Timeout | null;
-  arduinoStatus: 'connected' | 'disconnected' | 'unavailable' | 'connecting';
+  bluetoothStatus: 'connected' | 'disconnected' | 'unavailable' | 'connecting';
   error: string | null;
 }
 
@@ -17,10 +17,10 @@ type AppAction =
   | { type: 'SET_SCREEN'; payload: AppState['currentScreen'] }
   | { type: 'SET_CATEGORY'; payload: number }
   | { type: 'SET_OPTION'; payload: string }
-  | { type: 'SET_ARDUINO_STATUS'; payload: boolean }
+  | { type: 'SET_BLUETOOTH_STATUS'; payload: boolean }
   | { type: 'SET_LIMIT_SWITCH'; payload: boolean }
   | { type: 'SET_AUTO_TIMER'; payload: NodeJS.Timeout | null }
-  | { type: 'SET_ARDUINO_CONNECTION_STATUS'; payload: AppState['arduinoStatus'] }
+  | { type: 'SET_BLUETOOTH_CONNECTION_STATUS'; payload: AppState['bluetoothStatus'] }
   | { type: 'SET_ERROR'; payload: string | null }
   | { type: 'RESET_TO_HOME' };
 
@@ -28,10 +28,10 @@ const initialState: AppState = {
   currentScreen: 'home',
   selectedCategory: null,
   selectedOption: null,
-  isArduinoConnected: false,
+  isBluetoothConnected: false,
   limitSwitchPressed: false,
   autoReturnTimer: null,
-  arduinoStatus: 'disconnected',
+  bluetoothStatus: 'disconnected',
   error: null,
 };
 
@@ -43,14 +43,14 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
       return { ...state, selectedCategory: action.payload };
     case 'SET_OPTION':
       return { ...state, selectedOption: action.payload };
-    case 'SET_ARDUINO_STATUS':
-      return { ...state, isArduinoConnected: action.payload };
+    case 'SET_BLUETOOTH_STATUS':
+      return { ...state, isBluetoothConnected: action.payload };
     case 'SET_LIMIT_SWITCH':
       return { ...state, limitSwitchPressed: action.payload };
     case 'SET_AUTO_TIMER':
       return { ...state, autoReturnTimer: action.payload };
-    case 'SET_ARDUINO_CONNECTION_STATUS':
-      return { ...state, arduinoStatus: action.payload };
+    case 'SET_BLUETOOTH_CONNECTION_STATUS':
+      return { ...state, bluetoothStatus: action.payload };
     case 'SET_ERROR':
       return { ...state, error: action.payload };
     case 'RESET_TO_HOME':
@@ -71,61 +71,55 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
 const AppContext = createContext<{
   state: AppState;
   dispatch: React.Dispatch<AppAction>;
-  initializeArduino: () => Promise<void>;
+  initializeBluetooth: () => Promise<void>;
 } | null>(null);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(appReducer, initialState);
 
-  const initializeArduino = async () => {
+  const initializeBluetooth = async () => {
     try {
-      dispatch({ type: 'SET_ARDUINO_CONNECTION_STATUS', payload: 'connecting' });
+      dispatch({ type: 'SET_BLUETOOTH_CONNECTION_STATUS', payload: 'connecting' });
       dispatch({ type: 'SET_ERROR', payload: null });
 
-      if (!('serial' in navigator)) {
-        dispatch({ type: 'SET_ARDUINO_CONNECTION_STATUS', payload: 'unavailable' });
-        dispatch({ type: 'SET_ERROR', payload: 'Mohon maaf, untuk sementara mesin ini tidak dapat digunakan' });
-        return;
-      }
-
-      await arduinoService.initialize();
-      await arduinoService.scanAndConnect();
+      await bluetoothService.initialize();
+      await bluetoothService.scanAndConnect();
       
-      dispatch({ type: 'SET_ARDUINO_STATUS', payload: true });
-      dispatch({ type: 'SET_ARDUINO_CONNECTION_STATUS', payload: 'connected' });
+      dispatch({ type: 'SET_BLUETOOTH_STATUS', payload: true });
+      dispatch({ type: 'SET_BLUETOOTH_CONNECTION_STATUS', payload: 'connected' });
     } catch (error) {
-      console.error('Error inisialisasi Arduino:', error);
-      dispatch({ type: 'SET_ARDUINO_STATUS', payload: false });
-      dispatch({ type: 'SET_ARDUINO_CONNECTION_STATUS', payload: 'disconnected' });
-      dispatch({ type: 'SET_ERROR', payload: 'Mohon maaf, untuk sementara mesin ini tidak dapat digunakan' });
+      console.error('Error inisialisasi Bluetooth:', error);
+      dispatch({ type: 'SET_BLUETOOTH_STATUS', payload: false });
+      dispatch({ type: 'SET_BLUETOOTH_CONNECTION_STATUS', payload: 'disconnected' });
+      dispatch({ type: 'SET_ERROR', payload: 'Gagal menghubungkan ke ESP32. Pastikan Bluetooth aktif dan ESP32 menyala.' });
     }
   };
 
   useEffect(() => {
-    // Listen untuk event limit switch dan Arduino connection
+    // Listen untuk event limit switch dan Bluetooth connection
     const handleLimitSwitch = () => {
       dispatch({ type: 'SET_LIMIT_SWITCH', payload: true });
     };
 
-    const handleArduinoConnected = () => {
-      dispatch({ type: 'SET_ARDUINO_STATUS', payload: true });
-      dispatch({ type: 'SET_ARDUINO_CONNECTION_STATUS', payload: 'connected' });
+    const handleBluetoothConnected = () => {
+      dispatch({ type: 'SET_BLUETOOTH_STATUS', payload: true });
+      dispatch({ type: 'SET_BLUETOOTH_CONNECTION_STATUS', payload: 'connected' });
       dispatch({ type: 'SET_ERROR', payload: null }); // Clear error when connected
     };
 
-    const handleArduinoDisconnected = () => {
-      dispatch({ type: 'SET_ARDUINO_STATUS', payload: false });
-      dispatch({ type: 'SET_ARDUINO_CONNECTION_STATUS', payload: 'disconnected' });
+    const handleBluetoothDisconnected = () => {
+      dispatch({ type: 'SET_BLUETOOTH_STATUS', payload: false });
+      dispatch({ type: 'SET_BLUETOOTH_CONNECTION_STATUS', payload: 'disconnected' });
     };
 
     window.addEventListener('limitSwitchPressed', handleLimitSwitch);
-    window.addEventListener('arduinoConnected', handleArduinoConnected);
-    window.addEventListener('arduinoDisconnected', handleArduinoDisconnected);
+    window.addEventListener('bluetoothConnected', handleBluetoothConnected);
+    window.addEventListener('bluetoothDisconnected', handleBluetoothDisconnected);
 
     return () => {
       window.removeEventListener('limitSwitchPressed', handleLimitSwitch);
-      window.removeEventListener('arduinoConnected', handleArduinoConnected);
-      window.removeEventListener('arduinoDisconnected', handleArduinoDisconnected);
+      window.removeEventListener('bluetoothConnected', handleBluetoothConnected);
+      window.removeEventListener('bluetoothDisconnected', handleBluetoothDisconnected);
       if (state.autoReturnTimer) {
         clearTimeout(state.autoReturnTimer);
       }
@@ -133,7 +127,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [state.autoReturnTimer]);
 
   return (
-    <AppContext.Provider value={{ state, dispatch, initializeArduino }}>
+    <AppContext.Provider value={{ state, dispatch, initializeBluetooth }}>
       {children}
     </AppContext.Provider>
   );
