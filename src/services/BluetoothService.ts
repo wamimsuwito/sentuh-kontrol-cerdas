@@ -1,4 +1,3 @@
-
 import { BleClient, BleDevice } from '@capacitor-community/bluetooth-le';
 import { Capacitor } from '@capacitor/core';
 
@@ -22,30 +21,12 @@ export class BluetoothService {
         throw new Error('Bluetooth hanya tersedia di platform native');
       }
 
-      // Request permissions first
-      await this.requestPermissions();
-      
       await BleClient.initialize({ androidNeverForLocation: true });
       this.isInitialized = true;
       console.log('Bluetooth LE berhasil diinisialisasi');
     } catch (error) {
       console.error('Error saat inisialisasi Bluetooth LE:', error);
       this.isInitialized = false;
-      throw error;
-    }
-  }
-
-  private async requestPermissions(): Promise<void> {
-    try {
-      // Request Bluetooth permissions
-      const permissions = await BleClient.requestPermissions();
-      console.log('Bluetooth permissions:', permissions);
-      
-      if (!permissions.granted) {
-        throw new Error('Bluetooth permissions tidak diberikan');
-      }
-    } catch (error) {
-      console.error('Error requesting permissions:', error);
       throw error;
     }
   }
