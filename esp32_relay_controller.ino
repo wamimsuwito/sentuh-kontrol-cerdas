@@ -1,86 +1,144 @@
 
-#include "BluetoothSerial.h"
+#include "BLEDevice.h"
+#include "BLEServer.h"
+#include "BLEUtils.h"
+#include "BLE2902.h"
 
-// Inisialisasi Bluetooth Serial
-BluetoothSerial SerialBT;
+// UUID untuk BLE Service dan Characteristics
+#define SERVICE_UUID        "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
+#define CHARACTERISTIC_UUID "beb5483e-36e1-4688-b7f5-ea07361b26a8"
+#define LIMIT_SWITCH_UUID   "beb5483e-36e1-4688-b7f5-ea07361b26a9"
 
 // Pin untuk 16 relay (GPIO pins)
 const int relayPins[16] = {2, 4, 5, 18, 19, 21, 22, 23, 25, 26, 27, 32, 33, 12, 14, 15};
 
-// Pin untuk limit switch
+// Pin untuk limit switch dan LED
 const int limitSwitchPin = 13;
-
-// Pin untuk LED indikator
 const int ledPin = 2;
 
-// Variabel untuk status relay
+// Variabel untuk status relay dan limit switch
 bool relayStates[16] = {false};
-
-// Variabel untuk limit switch
 bool lastLimitSwitchState = false;
 unsigned long lastDebounceTime = 0;
 unsigned long debounceDelay = 50;
 
+// BLE variables
+BLEServer* pServer = NULL;
+BLECharacteristic* pCharacteristic = NULL;
+BLECharacteristic* pLimitSwitchCharacteristic = NULL;
+bool deviceConnected = false;
+bool oldDeviceConnected = false;
+
+// BLE Server Callbacks
+class MyServerCallbacks: public BLEServerCallbacks {
+    void onConnect(BLEServer* pServer) {
+      deviceConnected = true;
+      Serial.println("Client terhubung via BLE");
+    };
+
+    void onDisconnect(BLEServer* pServer) {
+      deviceConnected = false;
+      Serial.println("Client terputus dari BLE");
+    }
+};
+
+// BLE Characteristic Callbacks
+class MyCallbacks: public BLECharacteristicCallbacks {
+    void onWrite(BLECharacteristic *pCharacteristic) {
+      std::string rxValue = pCharacteristic->getValue();
+      
+      if (rxValue.length() > 0) {
+        String command = "";
+        for (int i = 0; i < rxValue.length(); i++) {
+          command += rxValue[i];
+        }
+        Serial.println("Perintah BLE diterima: " + command);
+        processCommand(command);
+      }
+    }
+};
+
 void setup() {
-  // Inisialisasi Serial untuk debugging
   Serial.begin(115200);
-  
-  // Inisialisasi Bluetooth dengan nama perangkat
-  SerialBT.begin("ESP32_Relay_Controller"); // Nama yang akan terlihat saat scan
-  Serial.println("ESP32 Relay Controller siap! Dapat dipasangkan dengan Bluetooth...");
-  
+  Serial.println("Menginisialisasi ESP32 Relay Controller dengan BLE...");
+
   // Setup pin relay sebagai output
   for (int i = 0; i < 16; i++) {
     pinMode(relayPins[i], OUTPUT);
     digitalWrite(relayPins[i], LOW); // Matikan semua relay saat startup
   }
   
-  // Setup pin limit switch sebagai input dengan pull-up internal
+  // Setup pin limit switch dan LED
   pinMode(limitSwitchPin, INPUT_PULLUP);
-  
-  // Setup LED indikator
   pinMode(ledPin, OUTPUT);
   digitalWrite(ledPin, LOW);
+
+  // Inisialisasi BLE
+  BLEDevice::init("ESP32_Relay_Controller");
+  pServer = BLEDevice::createServer();
+  pServer->setCallbacks(new MyServerCallbacks());
+
+  // Buat BLE Service
+  BLEService *pService = pServer->createService(SERVICE_UUID);
+
+  // Buat Characteristic untuk menerima perintah relay
+  pCharacteristic = pService->createCharacteristic(
+                      CHARACTERISTIC_UUID,
+                      BLECharacteristic::PROPERTY_READ |
+                      BLECharacteristic::PROPERTY_WRITE
+                    );
+  pCharacteristic->setCallbacks(new MyCallbacks());
+
+  // Buat Characteristic untuk mengirim data limit switch
+  pLimitSwitchCharacteristic = pService->createCharacteristic(
+                      LIMIT_SWITCH_UUID,
+                      BLECharacteristic::PROPERTY_READ |
+                      BLECharacteristic::PROPERTY_NOTIFY
+                    );
+  pLimitSwitchCharacteristic->addDescriptor(new BLE2902());
+
+  // Start service
+  pService->start();
+
+  // Start advertising
+  BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
+  pAdvertising->addServiceUUID(SERVICE_UUID);
+  pAdvertising->setScanResponse(false);
+  pAdvertising->setMinPreferred(0x0);
+  BLEDevice::startAdvertising();
   
-  Serial.println("ESP32 Relay Controller berhasil diinisialisasi");
-  Serial.println("16 Relay: Pin 2, 4, 5, 18, 19, 21, 22, 23, 25, 26, 27, 32, 33, 12, 14, 15");
-  Serial.println("Limit Switch: Pin 13");
-  Serial.println("LED Indikator: Pin 2");
+  Serial.println("ESP32 BLE Server siap dan advertising...");
+  Serial.println("Device name: ESP32_Relay_Controller");
+  Serial.println("Service UUID: " + String(SERVICE_UUID));
+  Serial.println("16 Relay pada GPIO: 2,4,5,18,19,21,22,23,25,26,27,32,33,12,14,15");
+  Serial.println("Limit Switch pada GPIO: 13");
 }
 
 void loop() {
-  // Cek koneksi Bluetooth
-  if (SerialBT.hasClient()) {
-    digitalWrite(ledPin, HIGH); // LED nyala jika ada client terhubung
-  } else {
-    digitalWrite(ledPin, LOW);  // LED mati jika tidak ada client
-  }
-  
-  // Baca perintah dari Bluetooth
-  if (SerialBT.available()) {
-    String command = SerialBT.readString();
-    command.trim(); // Hapus whitespace
-    
-    Serial.println("Perintah diterima: " + command);
-    processCommand(command);
-  }
+  // Update LED indikator berdasarkan koneksi BLE
+  digitalWrite(ledPin, deviceConnected ? HIGH : LOW);
   
   // Cek status limit switch
   checkLimitSwitch();
   
-  // Kirim status secara berkala (setiap 5 detik)
-  static unsigned long lastStatusTime = 0;
-  if (millis() - lastStatusTime > 5000) {
-    sendStatus();
-    lastStatusTime = millis();
+  // Handle BLE reconnection
+  if (!deviceConnected && oldDeviceConnected) {
+    delay(500); // Give some time before advertising again
+    pServer->startAdvertising();
+    Serial.println("Memulai advertising ulang...");
+    oldDeviceConnected = deviceConnected;
   }
   
-  delay(10); // Delay kecil untuk stabilitas
+  // Connecting
+  if (deviceConnected && !oldDeviceConnected) {
+    oldDeviceConnected = deviceConnected;
+  }
+  
+  delay(10);
 }
 
 void processCommand(String command) {
-  // Format perintah: RELAY_X_ON atau RELAY_X_OFF
-  // Dimana X adalah nomor relay (1-16)
+  command.trim();
   
   if (command.startsWith("RELAY_")) {
     int firstUnderscore = command.indexOf('_');
@@ -93,33 +151,31 @@ void processCommand(String command) {
       int relayNum = relayNumStr.toInt();
       
       if (relayNum >= 1 && relayNum <= 16) {
-        int arrayIndex = relayNum - 1; // Convert to 0-based index
+        int arrayIndex = relayNum - 1;
         
         if (action == "ON") {
           digitalWrite(relayPins[arrayIndex], HIGH);
           relayStates[arrayIndex] = true;
           Serial.println("Relay " + String(relayNum) + " DIHIDUPKAN");
-          SerialBT.println("OK_RELAY_" + String(relayNum) + "_ON");
+          
+          if (deviceConnected) {
+            String response = "OK_RELAY_" + String(relayNum) + "_ON";
+            pCharacteristic->setValue(response.c_str());
+            pCharacteristic->notify();
+          }
         }
         else if (action == "OFF") {
           digitalWrite(relayPins[arrayIndex], LOW);
           relayStates[arrayIndex] = false;
           Serial.println("Relay " + String(relayNum) + " DIMATIKAN");
-          SerialBT.println("OK_RELAY_" + String(relayNum) + "_OFF");
-        }
-        else {
-          Serial.println("Action tidak valid: " + action);
-          SerialBT.println("ERROR_INVALID_ACTION");
+          
+          if (deviceConnected) {
+            String response = "OK_RELAY_" + String(relayNum) + "_OFF";
+            pCharacteristic->setValue(response.c_str());
+            pCharacteristic->notify();
+          }
         }
       }
-      else {
-        Serial.println("Nomor relay tidak valid: " + String(relayNum));
-        SerialBT.println("ERROR_INVALID_RELAY_NUMBER");
-      }
-    }
-    else {
-      Serial.println("Format perintah tidak valid: " + command);
-      SerialBT.println("ERROR_INVALID_FORMAT");
     }
   }
   else if (command == "STATUS") {
@@ -132,16 +188,15 @@ void processCommand(String command) {
       relayStates[i] = false;
     }
     Serial.println("Semua relay telah direset (OFF)");
-    SerialBT.println("OK_ALL_RELAYS_RESET");
-  }
-  else {
-    Serial.println("Perintah tidak dikenal: " + command);
-    SerialBT.println("ERROR_UNKNOWN_COMMAND");
+    
+    if (deviceConnected) {
+      pCharacteristic->setValue("OK_ALL_RELAYS_RESET");
+      pCharacteristic->notify();
+    }
   }
 }
 
 void checkLimitSwitch() {
-  // Baca status limit switch dengan debouncing
   bool reading = digitalRead(limitSwitchPin);
   
   if (reading != lastLimitSwitchState) {
@@ -150,9 +205,12 @@ void checkLimitSwitch() {
   
   if ((millis() - lastDebounceTime) > debounceDelay) {
     if (reading == LOW && lastLimitSwitchState == HIGH) {
-      // Limit switch ditekan (dari HIGH ke LOW karena pull-up)
       Serial.println("Limit switch ditekan!");
-      SerialBT.println("LIMIT_SWITCH_PRESSED");
+      
+      if (deviceConnected) {
+        pLimitSwitchCharacteristic->setValue("LIMIT_SWITCH_PRESSED");
+        pLimitSwitchCharacteristic->notify();
+      }
     }
   }
   
@@ -160,31 +218,18 @@ void checkLimitSwitch() {
 }
 
 void sendStatus() {
-  // Kirim status semua relay
   String status = "STATUS:";
   for (int i = 0; i < 16; i++) {
     status += "R" + String(i + 1) + ":" + (relayStates[i] ? "ON" : "OFF");
     if (i < 15) status += ",";
   }
   
-  // Tambahkan status limit switch
   status += ",LS:" + String(digitalRead(limitSwitchPin) == LOW ? "PRESSED" : "RELEASED");
   
   Serial.println(status);
-  SerialBT.println(status);
-}
-
-// Fungsi untuk diagnostik (opsional)
-void runDiagnostic() {
-  Serial.println("Menjalankan diagnostik relay...");
   
-  for (int i = 0; i < 16; i++) {
-    Serial.println("Testing relay " + String(i + 1));
-    digitalWrite(relayPins[i], HIGH);
-    delay(500);
-    digitalWrite(relayPins[i], LOW);
-    delay(200);
+  if (deviceConnected) {
+    pCharacteristic->setValue(status.c_str());
+    pCharacteristic->notify();
   }
-  
-  Serial.println("Diagnostik selesai");
 }

@@ -2,8 +2,8 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'app.lovable.cc51a7d5960846ed89c2-dbfd261fdce9',
-  appName: 'sentuh-kontrol-cerdas',
+  appId: 'app.lovable.cc51a7d5960846ed89c2dbfd261fdce9',
+  appName: 'NiceNingrum-SentuhKontrolCerdas',
   webDir: 'dist',
   // Comment out server configuration for production build
   // server: {
@@ -13,11 +13,17 @@ const config: CapacitorConfig = {
   plugins: {
     BluetoothLe: {
       displayStrings: {
-        scanning: "Scanning for Bluetooth devices...",
-        cancel: "Cancel",
-        availableDevices: "Available devices",
-        noDeviceFound: "No Bluetooth devices found"
+        scanning: "Mencari perangkat Bluetooth...",
+        cancel: "Batal",
+        availableDevices: "Perangkat tersedia",
+        noDeviceFound: "Tidak ada perangkat Bluetooth ditemukan"
       }
+    },
+    SplashScreen: {
+      launchShowDuration: 2000,
+      backgroundColor: "#1a1a2e",
+      showSpinner: true,
+      spinnerColor: "#3b82f6"
     }
   },
   android: {
@@ -31,7 +37,7 @@ const config: CapacitorConfig = {
     },
     allowMixedContent: true,
     captureInput: true,
-    webContentsDebuggingEnabled: true
+    webContentsDebuggingEnabled: false // Set to false for production
   }
 };
 

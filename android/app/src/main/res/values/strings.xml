@@ -1,0 +1,8 @@
+
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">NiceNingrum</string>
+    <string name="title_activity_main">NiceNingrum</string>
+    <string name="package_name">app.lovable.cc51a7d5960846ed89c2dbfd261fdce9</string>
+    <string name="custom_url_scheme">app.lovable.cc51a7d5960846ed89c2dbfd261fdce9</string>
+</resources>

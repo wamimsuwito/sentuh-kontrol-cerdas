@@ -1,5 +1,5 @@
 
-import { BleClient, BleDevice, numberToUUID } from '@capacitor-community/bluetooth-le';
+import { BleClient, BleDevice } from '@capacitor-community/bluetooth-le';
 import { Capacitor } from '@capacitor/core';
 
 export class BluetoothService {
@@ -9,6 +9,8 @@ export class BluetoothService {
   private readonly limitSwitchCharacteristicUUID = 'beb5483e-36e1-4688-b7f5-ea07361b26a9';
   private isInitialized = false;
   private isConnecting = false;
+  private reconnectAttempts = 0;
+  private maxReconnectAttempts = 3;
 
   async initialize(): Promise<void> {
     try {
@@ -20,12 +22,30 @@ export class BluetoothService {
         throw new Error('Bluetooth hanya tersedia di platform native');
       }
 
-      await BleClient.initialize();
+      // Request permissions first
+      await this.requestPermissions();
+      
+      await BleClient.initialize({ androidNeverForLocation: true });
       this.isInitialized = true;
       console.log('Bluetooth LE berhasil diinisialisasi');
     } catch (error) {
       console.error('Error saat inisialisasi Bluetooth LE:', error);
       this.isInitialized = false;
+      throw error;
+    }
+  }
+
+  private async requestPermissions(): Promise<void> {
+    try {
+      // Request Bluetooth permissions
+      const permissions = await BleClient.requestPermissions();
+      console.log('Bluetooth permissions:', permissions);
+      
+      if (!permissions.granted) {
+        throw new Error('Bluetooth permissions tidak diberikan');
+      }
+    } catch (error) {
+      console.error('Error requesting permissions:', error);
       throw error;
     }
   }
@@ -44,6 +64,13 @@ export class BluetoothService {
       this.isConnecting = true;
       console.log('Memulai scan perangkat ESP32...');
       
+      // Check if Bluetooth is enabled
+      const isEnabled = await BleClient.isEnabled();
+      if (!isEnabled) {
+        console.log('Bluetooth tidak aktif, mencoba mengaktifkan...');
+        await BleClient.enable();
+      }
+
       await BleClient.requestLEScan(
         { 
           services: [this.serviceUUID],
@@ -59,15 +86,15 @@ export class BluetoothService {
         }
       );
 
-      // Stop scan setelah 10 detik jika tidak menemukan perangkat
-      setTimeout(() => {
-        BleClient.stopLEScan();
+      // Stop scan setelah 15 detik jika tidak menemukan perangkat
+      setTimeout(async () => {
+        await BleClient.stopLEScan();
         this.isConnecting = false;
         if (!this.device) {
-          console.log('Timeout: ESP32 tidak ditemukan dalam 10 detik');
-          throw new Error('ESP32 tidak ditemukan');
+          console.log('Timeout: ESP32 tidak ditemukan dalam 15 detik');
+          throw new Error('ESP32 tidak ditemukan dalam waktu 15 detik');
         }
-      }, 10000);
+      }, 15000);
     } catch (error) {
       this.isConnecting = false;
       console.error('Error saat scan perangkat:', error);
@@ -83,8 +110,22 @@ export class BluetoothService {
 
     try {
       console.log('Mencoba menghubungkan ke ESP32...');
-      await BleClient.connect(this.device.deviceId);
+      
+      // Add connection timeout
+      const connectPromise = BleClient.connect(this.device.deviceId, (deviceId) => {
+        console.log('ESP32 terputus:', deviceId);
+        this.handleDisconnection();
+      });
+
+      // Timeout after 10 seconds
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Connection timeout')), 10000);
+      });
+
+      await Promise.race([connectPromise, timeoutPromise]);
+      
       console.log('Berhasil terhubung ke ESP32');
+      this.reconnectAttempts = 0;
       
       // Subscribe untuk menerima data dari limit switch
       await BleClient.startNotifications(
@@ -93,7 +134,6 @@ export class BluetoothService {
         this.limitSwitchCharacteristicUUID,
         (value) => {
           const decoder = new TextDecoder();
-          // Convert DataView to Uint8Array for TextDecoder
           const uint8Array = new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
           const message = decoder.decode(uint8Array);
           console.log('Data dari limit switch ESP32:', message);
@@ -113,7 +153,39 @@ export class BluetoothService {
     } catch (error) {
       this.isConnecting = false;
       console.error('Error saat menghubungkan ke ESP32:', error);
+      this.handleConnectionError();
       throw error;
+    }
+  }
+
+  private handleDisconnection(): void {
+    this.device = null;
+    this.isConnecting = false;
+    
+    // Emit disconnected event
+    window.dispatchEvent(new CustomEvent('bluetoothDisconnected'));
+    
+    // Try to reconnect if not manually disconnected
+    if (this.reconnectAttempts < this.maxReconnectAttempts) {
+      this.reconnectAttempts++;
+      console.log(`Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
+      setTimeout(() => {
+        this.scanAndConnect().catch(err => {
+          console.error('Reconnection failed:', err);
+        });
+      }, 2000);
+    }
+  }
+
+  private handleConnectionError(): void {
+    if (this.reconnectAttempts < this.maxReconnectAttempts) {
+      this.reconnectAttempts++;
+      console.log(`Connection failed, retrying (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
+      setTimeout(() => {
+        this.scanAndConnect().catch(err => {
+          console.error('Retry connection failed:', err);
+        });
+      }, 1000);
     }
   }
 
@@ -152,6 +224,7 @@ export class BluetoothService {
         await BleClient.disconnect(this.device.deviceId);
         this.device = null;
         this.isConnecting = false;
+        this.reconnectAttempts = 0;
         console.log('ESP32 terputus');
         
         // Emit disconnected event
@@ -174,6 +247,11 @@ export class BluetoothService {
       return 'connecting';
     }
     return this.device ? 'connected' : 'disconnected';
+  }
+
+  async getDeviceInfo(): Promise<string | null> {
+    if (!this.device) return null;
+    return `${this.device.name || 'Unknown'} (${this.device.deviceId})`;
   }
 }
 
