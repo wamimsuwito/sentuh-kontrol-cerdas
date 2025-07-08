@@ -45,11 +45,11 @@ export const useOrderFlow = ({
 
   const handleConfirm = () => {
     if (selectedItem && buttonEnabled) {
-      handleButtonPress();
-      
-      // Stop limit switch audio immediately when button is pressed
-      console.log('🔇 Menghentikan audio limit switch');
+      // LANGSUNG STOP AUDIO LIMIT SWITCH SAAT TOMBOL DIKLIK
+      console.log('🔇 MENGHENTIKAN AUDIO LIMIT SWITCH - TOMBOL LANJUT DIKLIK');
       stopAudio('limit-switch-active');
+      
+      handleButtonPress();
       
       const timerDuration = getProductTimerDuration(selectedItem.id);
       console.log(`🚀 Mengaktifkan relay ${selectedItem.relayNumber} untuk ${timerDuration} detik`);
@@ -82,6 +82,7 @@ export const useOrderFlow = ({
 
   const handleCancelOrder = () => {
     // Stop all audio when canceling order
+    console.log('🔇 MENGHENTIKAN SEMUA AUDIO - CANCEL ORDER');
     stopAudio('limit-switch-active');
     stopAudio('processing-active');
     cancelCountdown();

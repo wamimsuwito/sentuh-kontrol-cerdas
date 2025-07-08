@@ -36,7 +36,8 @@ const Index = () => {
     handleButtonPress,
     setButtonTimeout,
     cancelCountdown,
-    isNative
+    isNative,
+    stopLimitSwitchAudio
   } = useESP32BluetoothNative();
 
   const { isProductEnabled } = useProductSettings();
@@ -70,6 +71,21 @@ const Index = () => {
   const handleItemSelectWithTimeout = (item: any) => {
     handleItemSelect(item);
     startOrderTimeout();
+  };
+
+  // Enhanced confirm handler that ensures audio stops
+  const handleConfirmWithAudioStop = () => {
+    console.log('🔇 EXPLICIT STOP LIMIT SWITCH AUDIO BEFORE CONFIRM');
+    stopLimitSwitchAudio();
+    handleConfirm();
+  };
+
+  // Enhanced cancel handler that ensures audio stops
+  const handleCancelWithAudioStop = () => {
+    console.log('🔇 EXPLICIT STOP LIMIT SWITCH AUDIO BEFORE CANCEL');
+    stopLimitSwitchAudio();
+    handleCancelOrder();
+    handleBack();
   };
 
   // Admin login page
@@ -113,11 +129,8 @@ const Index = () => {
     return (
       <ConfirmationPage
         item={selectedItem}
-        onBack={() => {
-          handleCancelOrder();
-          handleBack();
-        }}
-        onConfirm={handleConfirm}
+        onBack={handleCancelWithAudioStop}
+        onConfirm={handleConfirmWithAudioStop}
         limitSwitchPressed={limitSwitchPressed}
         buttonEnabled={buttonEnabled}
         onCancelCountdown={cancelCountdown}

@@ -21,7 +21,8 @@ export const useESP32BluetoothNative = () => {
     handleNotification,
     handleDisconnect: handleNotificationDisconnect,
     setRelayStatus,
-    setLimitSwitchPressed
+    setLimitSwitchPressed,
+    stopAudio
   } = useNotificationHandler({ setButtonEnabled, setButtonTimeout });
 
   const handleDisconnect = useCallback(() => {
@@ -54,6 +55,12 @@ export const useESP32BluetoothNative = () => {
     sendCommand(command);
   }, [sendCommand]);
 
+  // Function to manually stop limit switch audio
+  const stopLimitSwitchAudio = useCallback(() => {
+    console.log('🔇 MANUAL STOP LIMIT SWITCH AUDIO');
+    stopAudio('limit-switch-active');
+  }, [stopAudio]);
+
   return {
     isConnected,
     isConnecting,
@@ -68,6 +75,7 @@ export const useESP32BluetoothNative = () => {
     handleButtonPress,
     setButtonTimeout,
     cancelCountdown,
-    isNative
+    isNative,
+    stopLimitSwitchAudio
   };
 };
