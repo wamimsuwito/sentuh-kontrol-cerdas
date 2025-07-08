@@ -1,8 +1,0 @@
-
-export const BLUETOOTH_CONFIG = {
-  SERVICE_UUID: '6e400001-b5a3-f393-e0a9-e50e24dcca9e',
-  CHARACTERISTIC_UUID_RX: '6e400002-b5a3-f393-e0a9-e50e24dcca9e',
-  CHARACTERISTIC_UUID_TX: '6e400003-b5a3-f393-e0a9-e50e24dcca9e',
-  DEVICE_NAME: 'ESP32_Relay_Controller',
-  DEVICE_NAME_PREFIX: 'ESP32'
-} as const;
