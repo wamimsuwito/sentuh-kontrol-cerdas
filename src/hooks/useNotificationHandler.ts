@@ -65,6 +65,12 @@ export const useNotificationHandler = ({ setButtonEnabled, setButtonTimeout }: U
         stopAudio('limit-switch-active');
       });
       
+      // Auto-stop limit switch audio after 5 seconds
+      setTimeout(() => {
+        console.log('⏰ Auto-stopping limit switch audio after 5 seconds');
+        stopAudio('limit-switch-active');
+      }, 5000);
+      
       // Reset limit switch visual indicator after 1 second
       setTimeout(() => setLimitSwitchPressed(false), 1000);
     }
