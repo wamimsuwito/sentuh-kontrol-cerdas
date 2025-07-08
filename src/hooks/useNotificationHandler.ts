@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from 'react';
 import { RelayStatus } from '@/types/relay';
 import { updateRelayStatus, parseLimitSwitchMessage, parseRelayStatusMessage } from '@/utils/relayUtils';
@@ -16,7 +15,7 @@ export const useNotificationHandler = ({ setButtonEnabled, setButtonTimeout }: U
   const [limitSwitchPressed, setLimitSwitchPressed] = useState(false);
   const { wakeScreen, keepScreenOn } = useScreenControl();
   const { toast } = useToast();
-  const { playAudio, stopAudio, initializeAudio } = useAudioManager();
+  const { playAudio, stopAudio, stopAllAudio, initializeAudio } = useAudioManager();
 
   // Initialize audio when component mounts
   useEffect(() => {
@@ -61,8 +60,8 @@ export const useNotificationHandler = ({ setButtonEnabled, setButtonTimeout }: U
       
       // Set timer with timeout callback that stops limit switch audio
       setButtonTimeout(() => {
-        console.log('⏰ Button timeout - stopping limit switch audio');
-        stopAudio('limit-switch-active');
+        console.log('⏰ Button timeout - stopping all audio');
+        stopAllAudio();
       });
       
       // Reset limit switch visual indicator after 1 second
@@ -80,17 +79,15 @@ export const useNotificationHandler = ({ setButtonEnabled, setButtonTimeout }: U
     if (text.includes('ESP32_CONNECTED') || text.includes('ESP32_READY')) {
       console.log('✅ ESP32 sistem siap');
     }
-  }, [setButtonEnabled, setButtonTimeout, wakeScreen, keepScreenOn, toast, playAudio, stopAudio]);
+  }, [setButtonEnabled, setButtonTimeout, wakeScreen, keepScreenOn, toast, playAudio, stopAllAudio]);
 
   const handleDisconnect = useCallback(() => {
-    console.log('💔 Handling disconnect...');
+    console.log('💔 Handling disconnect - stopping all audio...');
     // Stop all audio when disconnected
-    stopAudio('customer-detected');
-    stopAudio('limit-switch-active'); 
-    stopAudio('processing-active');
+    stopAllAudio();
     setRelayStatus({});
     setLimitSwitchPressed(false);
-  }, [stopAudio]);
+  }, [stopAllAudio]);
 
   return {
     relayStatus,
@@ -99,6 +96,7 @@ export const useNotificationHandler = ({ setButtonEnabled, setButtonTimeout }: U
     handleDisconnect,
     setRelayStatus,
     setLimitSwitchPressed,
-    stopAudio // Export stopAudio for use in other components
+    stopAudio,
+    stopAllAudio // Export stopAllAudio for use in other components
   };
 };

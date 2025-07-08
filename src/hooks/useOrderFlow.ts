@@ -28,12 +28,13 @@ export const useOrderFlow = ({
 }: UseOrderFlowProps) => {
   const { toast } = useToast();
   const { getProductTimerDuration } = useProductData();
-  const { playAudio, stopAudio } = useAudioManager();
+  const { playAudio, stopAudio, stopAllAudio } = useAudioManager();
 
   const startOrderTimeout = () => {
     setButtonTimeout(() => {
-      // Stop limit switch audio when timeout occurs
-      stopAudio('limit-switch-active');
+      // Stop all audio when timeout occurs
+      console.log('🔇 Menghentikan semua audio karena timeout');
+      stopAllAudio();
       toast({
         title: "Waktu Habis",
         description: "Tombol tidak ditekan dalam 20 detik. Kembali ke halaman utama.",
@@ -71,8 +72,9 @@ export const useOrderFlow = ({
   };
 
   const handleProcessingComplete = () => {
-    // Stop processing audio when complete
-    stopAudio('processing-active');
+    // Stop all audio when processing complete
+    console.log('🔇 Menghentikan semua audio karena processing selesai');
+    stopAllAudio();
     toast({
       title: "Pesanan Selesai",
       description: "Terima kasih! Ambil pesanan Anda.",
@@ -82,8 +84,8 @@ export const useOrderFlow = ({
 
   const handleCancelOrder = () => {
     // Stop all audio when canceling order
-    stopAudio('limit-switch-active');
-    stopAudio('processing-active');
+    console.log('🔇 Menghentikan semua audio karena pesanan dibatalkan');
+    stopAllAudio();
     cancelCountdown();
     onOrderCancel();
   };

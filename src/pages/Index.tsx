@@ -5,6 +5,8 @@ import { usePageNavigation } from "@/hooks/usePageNavigation";
 import { useConnectionFlow } from "@/hooks/useConnectionFlow";
 import { useOrderFlow } from "@/hooks/useOrderFlow";
 import { useAdminFlow } from "@/hooks/useAdminFlow";
+import { useAudioManager } from "@/hooks/useAudioManager";
+import { useEffect } from "react";
 import CategoryPage from "./CategoryPage";
 import ConfirmationPage from "./ConfirmationPage";
 import ProcessingPage from "./ProcessingPage";
@@ -40,6 +42,7 @@ const Index = () => {
   } = useESP32BluetoothNative();
 
   const { isProductEnabled } = useProductSettings();
+  const { stopAllAudio } = useAudioManager();
 
   const { handleConnect, handleDisconnect } = useConnectionFlow({
     isNative,
@@ -66,17 +69,39 @@ const Index = () => {
     onOrderCancel: resetToHome
   });
 
+  // Stop all audio when navigating to home page
+  useEffect(() => {
+    if (currentPage === "home") {
+      console.log('🔇 Navigating to home page - stopping all audio');
+      stopAllAudio();
+    }
+  }, [currentPage, stopAllAudio]);
+
   // Start timeout when item is selected
   const handleItemSelectWithTimeout = (item: any) => {
     handleItemSelect(item);
     startOrderTimeout();
   };
 
+  // Enhanced back handler that stops all audio
+  const handleBackWithAudioStop = () => {
+    console.log('🔇 Back button pressed - stopping all audio');
+    stopAllAudio();
+    handleBack();
+  };
+
+  // Enhanced reset to home that stops all audio
+  const resetToHomeWithAudioStop = () => {
+    console.log('🔇 Resetting to home - stopping all audio');
+    stopAllAudio();
+    resetToHome();
+  };
+
   // Admin login page
   if (currentPage === "admin-login") {
     return (
       <AdminLoginPage
-        onBack={handleBack}
+        onBack={handleBackWithAudioStop}
         onLoginSuccess={handleAdminLoginSuccess}
       />
     );
@@ -85,7 +110,7 @@ const Index = () => {
   // Admin page
   if (currentPage === "admin") {
     return (
-      <AdminPage onBack={handleBack} />
+      <AdminPage onBack={handleBackWithAudioStop} />
     );
   }
 
@@ -102,7 +127,7 @@ const Index = () => {
       <CategoryPage
         category={selectedCategory}
         onItemSelect={handleItemSelectWithTimeout}
-        onBack={handleBack}
+        onBack={handleBackWithAudioStop}
         isProductEnabled={isProductEnabled}
       />
     );
@@ -115,7 +140,7 @@ const Index = () => {
         item={selectedItem}
         onBack={() => {
           handleCancelOrder();
-          handleBack();
+          handleBackWithAudioStop();
         }}
         onConfirm={handleConfirm}
         limitSwitchPressed={limitSwitchPressed}
