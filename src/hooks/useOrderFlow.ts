@@ -49,7 +49,7 @@ export const useOrderFlow = ({
       handleButtonPress();
       
       // Stop limit switch audio immediately when button is pressed
-      console.log('🔇 Menghentikan audio limit switch');
+      console.log('🔇 Menghentikan audio limit switch karena tombol confirm ditekan');
       stopAudio('limit-switch-active');
       
       const timerDuration = getProductTimerDuration(selectedItem.id);
